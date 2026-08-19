@@ -6,7 +6,7 @@ Manual invoice entry is repetitive and error-prone. This workflow removes the ma
 
 ## 🎥 Demo Video
 
-[![Watch the demo](screenshots/Screenshot__1322_.png)](YOUR_YOUTUBE_LINK_HERE)
+[![Watch the demo](screenshots/Screenshot__1322_.png)](https://youtu.be/g7x9yuP7bNI?si=EWnZjn19mTkokEXh)
 
 *(Click the image above to watch the full walkthrough on YouTube)*
 
