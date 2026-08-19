@@ -1,0 +1,478 @@
+{
+  "name": "AI Invoice Processing & Management",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "triggerOn": "specificFolder",
+        "folderToWatch": {
+          "__rl": true,
+          "value": "YOUR_FOLDER_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/YOUR_FOLDER_ID"
+        },
+        "event": "fileCreated",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDriveTrigger",
+      "typeVersion": 1,
+      "position": [
+        -992,
+        112
+      ],
+      "id": "c0a44a1e-7219-475a-8995-a9f564d7bf5f",
+      "name": "Google Drive Trigger",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -816,
+        112
+      ],
+      "id": "817162c0-b3fe-4c59-bcf6-ed65e40135c0",
+      "name": "Download file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        112
+      ],
+      "id": "cd901963-306e-47f1-8cde-bfd42dbe177e",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "text": "={{ $json.text }}",
+        "attributes": {
+          "attributes": [
+            {
+              "name": "vandor_name",
+              "description": "The company sending the invoice",
+              "required": true
+            },
+            {
+              "name": "invoice_number",
+              "description": "The invoice number . Extract only if explicitly written in the text. Do not guess, estimate, or invent a value. Leave blank if not found.",
+              "required": true
+            },
+            {
+              "name": "invoice_date",
+              "type": "date",
+              "description": "The date the invoice was issued",
+              "required": true
+            },
+            {
+              "name": "due_date",
+              "type": "date",
+              "description": "The date payment is due",
+              "required": true
+            },
+            {
+              "name": "bill_to_name",
+              "description": "The person or company being billed",
+              "required": true
+            },
+            {
+              "name": "subtotal",
+              "description": "Subtotal before tax.Extract only if explicitly written as a number in the text. Leave empty if not found \u2014 do not return 0 or any placeholder.",
+              "required": true
+            },
+            {
+              "name": "tax_amount",
+              "description": "Tax Amount.Extract only if explicitly written as a number in the text. Leave empty if not found \u2014 do not return 0 or any placeholder."
+            },
+            {
+              "name": "total_amount",
+              "description": "Final total amount. Extract only if explicitly written in the text. Do not guess, estimate, or invent a value. Leave blank if not found."
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.informationExtractor",
+      "typeVersion": 1.2,
+      "position": [
+        -448,
+        112
+      ],
+      "id": "4d96d127-a906-4b8c-a944-db355934a7ea",
+      "name": "Information Extractor"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -512,
+        272
+      ],
+      "id": "c8d4ae6c-9c68-46dd-949b-b47f0a18cd9e",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Invoice agent",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "vandor_name": "={{ $json.output.vandor_name }}",
+            "invoice_number": "={{ $json.output.invoice_number }}",
+            "invoice_date": "={{ $json.output.invoice_date }}",
+            "due_date": "={{ $json.output.due_date }}",
+            "bill_to_name": "={{ $json.output.bill_to_name }}",
+            "subtotal": "={{ $json.output.subtotal }}",
+            "tax_amount": "={{ $json.output.tax_amount }}",
+            "total_amount": "={{ $json.output.total_amount }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "vandor_name",
+              "displayName": "vandor_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_date",
+              "displayName": "invoice_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bill_to_name",
+              "displayName": "bill_to_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tax_amount",
+              "displayName": "tax_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total_amount",
+              "displayName": "total_amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        112
+      ],
+      "id": "74157ca8-1b56-4eea-8acd-6c1a012d83fd",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "=New Invoice Processed \u2014 {{ $json.invoice_number }}",
+        "message": "=<p>A new invoice has been processed automatically.</p>\n\n<p>\n<b>Invoice:</b> {{ $json.invoice_number }}<br>\n<b>Vendor:</b> {{ $json.vandor_name }}<br>\n<b>Owner/Client:</b> {{ $json.bill_to_name }}<br>\n<b>Date:</b> {{ $json.invoice_date }}<br>\n<b>Subtotal:</b> Rs. {{ $json.subtotal }}<br>\n<b>Tax:</b> Rs. {{ $json.tax_amount }}<br>\n<b>Total:</b> Rs. {{ $json.total_amount }}\n</p>\n\n<p><i>This email was sent automatically with n8n.</i></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        304,
+        112
+      ],
+      "id": "2b066425-3324-46e5-881b-c0af3e81d06e",
+      "name": "Send a message",
+      "webhookId": "6f4c946d-e646-43ee-9de0-8a98e21c5241",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "eb24a39e-e1fa-40ed-845f-a8f8752aa6d8",
+              "leftValue": "={{ $json.output.invoice_number }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "484d7c8d-8c6e-4177-9c30-4ac95c096180",
+              "leftValue": "=   {{ $json.output.total_amount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -160,
+        112
+      ],
+      "id": "8455f320-8068-43f3-b704-634bc1fd5d51",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "sendTo": "your-email@example.com",
+        "subject": "   Invoice Processing Failed - Manual Review Needed",
+        "message": "=An invoice could not be processed because required fields (Invoice Number or Total Amount) were missing.  File name: {{ $('Google Drive Trigger').item.json.name }}  Please check the Google Drive folder manually.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -48
+      ],
+      "id": "b141ed30-2064-4015-9ff9-a9c0eb20e772",
+      "name": "Send a message1",
+      "webhookId": "2d54d4ed-a6b1-4bf9-8ee1-b1bc2fa7dedf",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "YOUR_CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Drive Trigger": {
+      "main": [
+        [
+          {
+            "node": "Download file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download file": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Information Extractor",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Information Extractor": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "337e379b-7c48-44ea-8bbb-84c47252509d",
+  "meta": {
+    "instanceId": "YOUR_INSTANCE_ID"
+  },
+  "nodeGroups": [],
+  "id": "YOUR_WORKFLOW_ID",
+  "tags": []
+}
